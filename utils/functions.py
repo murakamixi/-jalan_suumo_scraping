@@ -82,6 +82,8 @@ def get_page_soup(internal_url:str) -> bs4.BeautifulSoup:
     page_url = 'https://suumo.jp' + internal_url
     page_res = requests.get(page_url)
     page_soup = BeautifulSoup(page_res.content, 'html.parser')
+
+    time.sleep(5)
     
     return page_soup
     
@@ -121,6 +123,8 @@ def get_house_details(page_soup:bs4.BeautifulSoup) -> bs4.element.Tag:
     
     # テーブルの取得
     house_details_info = house_details_soup.find('table', {'class': 'pCell10'})
+
+    time.sleep(5)
 
     return house_details_info
 
@@ -217,6 +221,8 @@ def get_house_img(page_soup:bs4.BeautifulSoup, house_id:int)->list:
     # 以下で始まるのはIMGタグだがアクセスできないため排除する
     un_img_signal = 'gvavadfbasdfbarvbaebabaertbertbaebfbadbavafdvkavnakfvbaklvbaiklvuhiaerbnvnvkajbvkajbfgkjasbvkabvabfoak;dnvlasndvkahgvklashdvb'
     
+    # 5の倍数のときに多めに休むようにしてみる
+    sleep_count = 0
     for img in imgs:
         try:
             img_url = img['rel']
@@ -227,12 +233,19 @@ def get_house_img(page_soup:bs4.BeautifulSoup, house_id:int)->list:
 
         if not un_img_signal in img_url:
             img_name = str(house_id) + '_' + str(img_id)
+            print(img_name) # どこで停止しているかを確認するため
             img_id += 1
-            img_url = img_url.replace('&amp;', '&')
+            img_url = img_url.replace('&amp;', '&') # 文字化け対策
+            # 以下は画像の保存に関する記述
             img = Image.open(io.BytesIO(requests.get(img_url).content))
             img.save(f'imgs/{img_name}.jpg')
             img_list.append({'house_id':house_id, 'img_id':img_id, 'img_tag':img_tag, 'img_name':img_name})
-    
+        
+        time.sleep(5)
+        # 5枚画像取るごとにちょっとながめに休憩
+        if sleep_count % 5 == 0:
+            time.sleep(50)
+        sleep_count += 1
     return img_list
 
 def get_index_info(urls:list, house_info:list, house_id:int) -> list:
@@ -254,11 +267,11 @@ def get_index_info(urls:list, house_info:list, house_id:int) -> list:
                 [{'House_ID': house_id, 'text':house_text_dict, 'info':house_info_dict, 'imgs':house_img_list}...]
     """
     for url in urls:
-        page_soup = get_page_soup(url)
-        table = get_house_details(page_soup)
+        page_soup = get_page_soup(url)# requestをget_page_soupは送って個々の物件の情報を取得している
+        table = get_house_details(page_soup) # request送って物件詳細のテーブル情報を取得している 
         house_info_dict = extract_table_data(table)
         house_text_dict = get_title_and_comment(page_soup)
-        house_img_list = get_house_img(page_soup, house_id)
+        house_img_list = get_house_img(page_soup, house_id) # request送って写真を取得している
 
         house_dict = {'House_ID': house_id, 'text':house_text_dict, 'info':house_info_dict, 'imgs':house_img_list}
         house_info.append(house_dict)
