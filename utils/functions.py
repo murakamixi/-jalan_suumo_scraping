@@ -267,6 +267,7 @@ def get_index_info(urls:list, house_info:list, house_id:int) -> list:
                 [{'House_ID': house_id, 'text':house_text_dict, 'info':house_info_dict, 'imgs':house_img_list}...]
     """
     for url in urls:
+        print("property's page URL : ", url)
         page_soup = get_page_soup(url)# requestをget_page_soupは送って個々の物件の情報を取得している
         table = get_house_details(page_soup) # request送って物件詳細のテーブル情報を取得している 
         house_info_dict = extract_table_data(table)
