@@ -241,7 +241,7 @@ def get_house_img(page_soup:bs4.BeautifulSoup, house_id:int)->list:
             img.save(f'imgs/{img_name}.jpg')
             img_list.append({'house_id':house_id, 'img_id':img_id, 'img_tag':img_tag, 'img_name':img_name})
         
-        time.sleep(5)
+        time.sleep(20)
         # 5枚画像取るごとにちょっとながめに休憩
         if sleep_count % 5 == 0:
             time.sleep(50)
