@@ -8,12 +8,12 @@ import bs4
 
 from selenium.common.exceptions import NoSuchElementException
 
+import pandas as pd
 from PIL import Image
+import re
 import io
 
 import time
-
-import pandas as pd
 
 def get_urls(soup:bs4.BeautifulSoup) -> list:
     """get_urls
@@ -233,22 +233,26 @@ def get_house_img(page_soup:bs4.BeautifulSoup, house_id:int)->list:
 
         if not un_img_signal in img_url:
             img_name = str(house_id) + '_' + str(img_id)
-            print(img_name) # どこで停止しているかを確認するため
             img_id += 1
             img_url = img_url.replace('&amp;', '&') # 文字化け対策
             # 以下は画像の保存に関する記述
-            img = Image.open(io.BytesIO(requests.get(img_url).content))
-            img.save(f'imgs/{img_name}.jpg')
-            img_list.append({'house_id':house_id, 'img_id':img_id, 'img_tag':img_tag, 'img_name':img_name})
+            if not re.compile("resizeImage").search(img_url): #無条件で持ってくるとリサイズされた画像まで持ってきてしまうためそれを防ぐ
+                print("success", img_name, img_url) # どこで停止しているかを確認するため
+                # 画像がリサイズされていないときは保存する
+                img = Image.open(io.BytesIO(requests.get(img_url).content))
+                img.save(f'imgs/{img_name}.jpg')
+                img_list.append({'house_id':house_id, 'img_id':img_id, 'img_tag':img_tag, 'img_name':img_name})
+                time.sleep(10)
+                # 10枚画像取るごとにちょっとながめに休憩
+                if sleep_count % 10 == 0:
+                    time.sleep(50)
+                sleep_count += 1
+            else:
+                print("false")
         
-        time.sleep(20)
-        # 5枚画像取るごとにちょっとながめに休憩
-        if sleep_count % 5 == 0:
-            time.sleep(50)
-        sleep_count += 1
     return img_list
 
-def get_index_info(urls:list, house_info:list, house_id:int) -> list:
+def get_index_info(urls:list, house_info:list, house_id:int) -> Union[list, int]:
     """get_index_info
         Index1ページ分のURL
         ここのループでは、Index1ページ分のURLをすべて取ってきている
