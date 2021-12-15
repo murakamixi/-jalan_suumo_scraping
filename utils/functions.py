@@ -1,3 +1,4 @@
+#from typeshed import NoneType
 from typing import Union
 from selenium import webdriver
 from webdriver_manager.chrome import ChromeDriverManager
@@ -83,7 +84,7 @@ def get_page_soup(internal_url:str) -> bs4.BeautifulSoup:
     page_res = requests.get(page_url)
     page_soup = BeautifulSoup(page_res.content, 'html.parser')
 
-    time.sleep(5)
+    time.sleep(15)
     
     return page_soup
     
@@ -114,17 +115,23 @@ def get_house_details(page_soup:bs4.BeautifulSoup) -> bs4.element.Tag:
     
     if house_details_a_elem is None:
         house_details_a_elem = page_soup.find('a', attrs={'class' : 'tabOutline'})
-        
-    house_details_url = house_details_a_elem.attrs['href']
-    
-    #物件詳細のページへのアクセス    
-    house_details_res = requests.get(house_details_url)
-    house_details_soup = BeautifulSoup(house_details_res.content, 'html.parser')
-    
-    # テーブルの取得
-    house_details_info = house_details_soup.find('table', {'class': 'pCell10'})
 
-    time.sleep(5)
+    try:    
+        house_details_url = house_details_a_elem.attrs['href']
+        
+        #物件詳細のページへのアクセス    
+        house_details_res = requests.get(house_details_url)
+        house_details_soup = BeautifulSoup(house_details_res.content, 'html.parser')
+        
+        # テーブルの取得
+        house_details_info = house_details_soup.find('table', {'class': 'pCell10'})
+        time.sleep(5)
+
+    except Exception as e:
+        print(e)
+        print("house_details_a_elem", house_details_a_elem)
+        print("page_soup", page_soup)
+        house_details_info = {}
 
     return house_details_info
 
@@ -274,7 +281,34 @@ def get_index_info(urls:list, house_info:list, house_id:int) -> Union[list, int]
         print("property's page URL : ", url)
         page_soup = get_page_soup(url)# requestをget_page_soupは送って個々の物件の情報を取得している
         table = get_house_details(page_soup) # request送って物件詳細のテーブル情報を取得している 
-        house_info_dict = extract_table_data(table)
+        try:    
+            house_info_dict = extract_table_data(table)
+        except:
+            print("get_index_info Error")
+            house_info_dict = {'販売スケジュール': "",
+        'イベント情報': "",
+        '所在地' : "",
+        '交通' : "",
+        '販売戸数' :"",
+        '総戸数' : "",
+        '価格' : "",
+        '最多価格帯' : "",
+        '私道負担・道路' : "",
+        '諸費用' : "",
+        '間取り' : "",
+        '建物面積' : "",
+        '土地面積' : "",
+        '建ぺい率・容積率' : "",
+        '完成時期(築年月)' : "",
+        '入居時期' : "",
+        '土地の権利形態' : "",
+        '構造・工法' : "",
+        '施工' : "",
+        'リフォーム' : "",
+        '用途地域' : "",
+        '地目' : "",
+        'その他制限事項' : "",
+        'その他概要・特記事項' : ""}
         house_text_dict = get_title_and_comment(page_soup)
         house_img_list = get_house_img(page_soup, house_id) # request送って写真を取得している
 
