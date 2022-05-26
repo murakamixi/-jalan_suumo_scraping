@@ -18,11 +18,13 @@ import utils.data as data
 
 from absl import app
 from absl import flags
+from absl import logging
 
 FLAGS = flags.FLAGS
 flags.DEFINE_string('pref_name', 'Yamagata', 'pref name')
+flags.DEFINE_string('target', 'suumo', 'suumo or jalan')
 
-def main(argv):
+def suumo():
   house_id = 0
   pref_sum_count = 0
 
@@ -33,7 +35,7 @@ def main(argv):
       data_list = []
       page_count = 0
 
-      print(pref_sum_count, prefecture_name)
+      logging.info(pref_sum_count, prefecture_name)
 
       options = Options()
       options.add_argument('--headless')
@@ -50,9 +52,10 @@ def main(argv):
       browser = webdriver.Chrome(ChromeDriverManager().install(), options=options)
       browser.get(url)
 
+			# 次へをクリックして、ページがなくなるまで繰り返しページを探索する
       while True:
           url = browser.current_url
-          print(url)
+          logging.info(url)
           #ブラウザの起動
           options = Options()
           options.add_argument('--headless')
@@ -68,8 +71,8 @@ def main(argv):
 
               browser.find_element_by_link_text('次へ').click()
               if page_count % 10 == 0:
-                  print("pages:{0}".format(page_count))
-                  print('==============================================')
+                  logging.info("pages:{0}".format(page_count))
+                  logging.info('==============================================')
                   time.sleep(60)
               time.sleep(60)
 
@@ -95,7 +98,16 @@ def main(argv):
               browser.quit()
               break
 
-      print('browser quit')
+      logging.info('browser quit')
+
+def jalan():
+    print('jalan')
+
+def main(argv):
+    if FLAGS.target == 'suumo':
+        suumo()
+    elif FLAGS.target == 'jalan':
+	    jalan()
 
 if __name__ == '__main__':
   app.run(main)
