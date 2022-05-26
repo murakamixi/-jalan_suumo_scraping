@@ -24,8 +24,10 @@ FLAGS = flags.FLAGS
 flags.DEFINE_string('pref_name', 'Yamagata', 'pref name')
 flags.DEFINE_string('target', 'suumo', 'suumo or jalan')
 
+flags.DEFINE_integer('page_interval', 60, 'page sleep interval time')
+flags.DEFINE_integer('img_interval', 30, 'img sleep interval time')
+
 def suumo():
-    logging.info('Starting suumo scraping')
     house_id = 0
     pref_sum_count = 0
 
@@ -92,7 +94,6 @@ def suumo():
         logging.info('browser quit')
 
 def jalan():
-    logging.info('Starting jalan scraping')
     pref_sum_count = 0
 
     for url in [data.jalan_urls['Yamagata']]:
@@ -123,12 +124,13 @@ def jalan():
 
             try:
                 res = requests.get(url)
-                soup = BeautifulSoup(res.content, 'html.parser', from_encoding='utf-8')
+                soup = BeautifulSoup(res.content, 'html.parser')
                 urls = F.get_urls(soup, target='jalan') #⓪任意の件に含まれる1ページの全観光地のリンク
 
                 for url in urls:
                     # ①一つの観光地についての口コミ１ページ
                     page_url = "https:" + url + 'kuchikomi'
+                    logging.info('Starting landmark page url')
                     review_count = 0
                     while True:
                         options = Options()
@@ -148,10 +150,14 @@ def jalan():
                         for content in all_content:
 
                             if F.is_existing_img(content):
-                                # ②
+                                # ②IMGのコメントだけを抽出
                                 review_page_soup = F.get_review_page_soup(content)
                                 review_property_dict = F.get_jalan_review(review_count, content, review_page_soup)
-                                print('img existing content url', review_property_dict['review_page_url'])
+
+                                if review_property_dict['review'] == '' or 'Error' in review_property_dict:
+                                    logging.error('review encoding error:', review_property_dict['Error'])
+                                    break
+
                                 img_name_list = F.get_review_img(landmark_count, review_count, review_page_soup)
 
                                 review_count += 1
@@ -159,7 +165,6 @@ def jalan():
 
                         try:
                             browser_page.find_element_by_link_text('次へ').click()
-                            page_current_url = browser_page.current_url
                             page_url = browser_page.current_url
                         except NoSuchElementException:
                             browser.quit()
@@ -192,9 +197,23 @@ def jalan():
 
 def main(argv):
     if FLAGS.target == 'suumo':
+        logging.info('Starting suumo scraping')
         suumo()
     elif FLAGS.target == 'jalan':
-	    jalan()
+        logging.info('Starting jalan scraping')
+        jalan()
+    elif FLAGS.target == 'log':
+        # logging.info('Interesting Stuff')
+        # logging.info('Interesting Stuff with Arguments: %d', 42)
+
+        logging.set_verbosity(logging.INFO)
+        logging.log(logging.DEBUG, 'This will *not* be printed')
+        logging.set_verbosity(logging.DEBUG)
+        logging.log(logging.DEBUG, 'This will be printed')
+
+        # logging.warning('Worrying Stuff')
+        # logging.error('Alarming Stuff')
+        # logging.fatal('AAAAHHHHH!!!!')  # Process exits
 
 if __name__ == '__main__':
     app.run(main)

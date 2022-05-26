@@ -293,7 +293,7 @@ def get_index_info(urls:list, house_info:list, house_id:int) -> Union[list, int]
         try:
             house_info_dict = extract_table_data(table)
         except:
-            logging.warning("get_index_info Error")
+            logging.error("get_index_info Error")
             house_info_dict = {'販売スケジュール': "",
         'イベント情報': "",
         '所在地' : "",
@@ -401,7 +401,7 @@ def get_review_page_soup(content_soup:bs4.BeautifulSoup):
 def get_jalan_review(review_id:int, content_soup:bs4.BeautifulSoup, review_page_soup:bs4.BeautifulSoup) -> dict:
     review_property_dict = {}
     review_property_dict['review_id'] = review_id
-    
+
     div_elem = content_soup.find('p', attrs={'class' : 'item-title'})
     a_elem = div_elem.find('a')
     review_page_url = 'https:' + a_elem.attrs['href']
@@ -410,52 +410,57 @@ def get_jalan_review(review_id:int, content_soup:bs4.BeautifulSoup, review_page_
     review_soup = review_page_soup.find('p', attrs={'class' : 'reviewText'})
 
     title = review_page_soup.find('h1', attrs={'class' : 'basicTitle'})
-    # try:
-    # review = review_soup.text.replace('\n', '')
-    review = review_soup.text.replace('\n', '')
-    print('review', review)
-    # except:
-    #     review = ''
-
     review_property_dict['title'] = title
-    review_property_dict['review'] = review
+
+    # reviewの文字化けで止まってしまうことがあるのでその対策
+    try:
+        review = review_soup.text.replace('\n', '')
+        review_property_dict['review'] = review
+    except Exception as e:
+        review = ''
+        review_property_dict['review'] = review
+        review_property_dict['Error'] = e
+        # 止まったら確認用に使う
+        # print('review: review Error', review)
+        return review_property_dict
 
     review_properties = review_page_soup.find('ul', attrs={'class' : 'reviewDetail'})
     review_properties = review_properties.find_all('li')
     review_properties=[review_property.text.strip() for review_property in review_properties]
-    text = str(review_properties[0])
 
-    for review_property in review_properties:
-      print('review_property', review_property)
-      column_name = review_property.split('：')[0]
-      column_data = review_property.split('：')[1]
+    # 文字化けで止まってしまうのでその対策
+    try:
+        for review_property in review_properties:
+            # 止まったら確認用に使う
+            # print('review_property', review_property)
+            column_name = review_property.split('：')[0]
+            column_data = review_property.split('：')[1]
 
-      review_property_dict[column_name] = column_data
+        review_property_dict[column_name] = column_data
+
+    except IndexError as e:
+        review_property_dict['Error'] = e
 
     return review_property_dict
 
 def get_review_img(landmark_id:int, review_id:int, review_page_soup:bs4.BeautifulSoup)->list:
-    # img_urls = []
     img_id = 0
     img_name_list = list()
-    # print('img class')
 
     img_contents_block = review_page_soup.find('ul', attrs={'class' : 'cassetteList-photo'})
-    # print('img contents block', img_contents_block)
     img_contents = img_contents_block.find_all('li', attrs={'class' : 'lightbox'})
-    # print('img contents', img_contents)
 
     for img_content in img_contents:
-      img_elem = img_content.find('source')
-      img_url = img_elem.attrs['srcset']
-      img_url = 'https:' + img_url
+        img_elem = img_content.find('source')
+        img_url = img_elem.attrs['srcset']
+        img_url = 'https:' + img_url
 
-      img = Image.open(io.BytesIO(requests.get(img_url).content))
-      img_name=str(landmark_id) + '_' + str(review_id) + '_' + str(img_id)
-      img.save(f'imgs/jalan/{img_name}.jpg')
-      
-      img_name_list.append(img_name)
+        img = Image.open(io.BytesIO(requests.get(img_url).content))
+        img_name=str(landmark_id) + '_' + str(review_id) + '_' + str(img_id)
+        img.save(f'imgs/jalan/{img_name}.jpg')
 
-      img_id += 1
+        img_name_list.append(img_name)
+
+        img_id += 1
 
     return img_name_list
