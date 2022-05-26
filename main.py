@@ -22,7 +22,7 @@ from absl import flags
 FLAGS = flags.FLAGS
 flags.DEFINE_string('pref_name', 'Yamagata', 'pref name')
 
-def main():
+def main(argv):
   house_id = 0
   pref_sum_count = 0
 
