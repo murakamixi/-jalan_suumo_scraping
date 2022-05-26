@@ -17,10 +17,11 @@ import io
 import time
 
 def get_urls(soup:bs4.BeautifulSoup) -> list:
-    """get_urls
+    """
+        get_urls
 
         SUUMOの物件一覧のページからURL個別ページのURLを取得する関数
-        
+
         1. SUUMOの物件情報(indexページ)は、基本的に内部リンク（'https:~がない"）形式でHTMLが作成されているため、内部リンクのみ全体のページから取得する
         2. 取得したURLをリスト形式にまとめる
         3. URLのリストを返す関数を作成する
@@ -32,9 +33,9 @@ def get_urls(soup:bs4.BeautifulSoup) -> list:
             list: SUUMOの物件データの各ページの内部リンクのURL (例 :['/chukoikkodate/yamagata/sc_tendo/nc_97027597/','/chukoikkodate/yamagata/sc_yamagata/nc_96589986/'])
 
         Examples:
-
             >>> get_urls (soup)
-               ['/chukoikkodate/yamagata/sc_tendo/nc_97027597/',
+                [
+                '/chukoikkodate/yamagata/sc_tendo/nc_97027597/',
                 '/chukoikkodate/yamagata/sc_yamagata/nc_96589986/',
                 '/chukoikkodate/yamagata/sc_yamagata/nc_97426196/',
                 '/chukoikkodate/yamagata/sc_yamagata/nc_96140671/',
@@ -46,19 +47,20 @@ def get_urls(soup:bs4.BeautifulSoup) -> list:
                 '/chukoikkodate/yamagata/sc_yamagata/nc_95803869/',
                 '/chukoikkodate/yamagata/sc_tendo/nc_94966659/',
                 '/chukoikkodate/yamagata/sc_sakata/nc_94599713/',
-                '/chukoikkodate/yamagata/sc_yamagata/nc_96872001/']
+                '/chukoikkodate/yamagata/sc_yamagata/nc_96872001/'
+                ]
         """
 
     h2_elems = soup.find_all('h2', attrs={'class' : 'property_unit-title'})
-    
+
     urls = []
-    
+
     for h2_elem in h2_elems:
         a_elem = h2_elem.find('a')
         url = a_elem.attrs['href']
-        
+
         urls.append(url)
-        
+
     return urls
 
 def get_page_soup(internal_url:str) -> bs4.BeautifulSoup:
@@ -77,7 +79,7 @@ def get_page_soup(internal_url:str) -> bs4.BeautifulSoup:
 
             >>> page_soup = get_page_soup ('url')
             >>> type(page_soup)
-                bs4.BeautifulSoup   
+                bs4.BeautifulSoup
     """
     # ページ内リンクをドメインと結びつけて直にアクセスできるリンクに変換している
     page_url = 'https://suumo.jp' + internal_url
@@ -85,16 +87,14 @@ def get_page_soup(internal_url:str) -> bs4.BeautifulSoup:
     page_soup = BeautifulSoup(page_res.content, 'html.parser')
 
     time.sleep(15)
-    
+
     return page_soup
-    
+
 def get_house_details(page_soup:bs4.BeautifulSoup) -> bs4.element.Tag:
     """get_house_details
 
         各ページの物件情報を収集する関数
         各物件ページのbs4.BeautifulSoupオブジェクトから「物件情報」にアクセスして、「物件情報」のテーブルまるごと取得する。
-
-        
         出力は各ページの物件情報が格納されたbs4.element.Tagオブジェクト
 
         Args:
@@ -106,23 +106,23 @@ def get_house_details(page_soup:bs4.BeautifulSoup) -> bs4.element.Tag:
         Examples:
 
             >>> get_house_details(page_soup）
-        
+
         Note.
             テーブルはすべて二列というわけではないので、途中で要素がない場合があるため、is Noneで判別するようにしている。
     """
     #物件詳細のページへのリンクの取得
     house_details_a_elem = page_soup.find('a', attrs={'class' : 'tabOutline2'})
-    
+
     if house_details_a_elem is None:
         house_details_a_elem = page_soup.find('a', attrs={'class' : 'tabOutline'})
 
-    try:    
+    try:
         house_details_url = house_details_a_elem.attrs['href']
-        
-        #物件詳細のページへのアクセス    
+
+        #物件詳細のページへのアクセス
         house_details_res = requests.get(house_details_url)
         house_details_soup = BeautifulSoup(house_details_res.content, 'html.parser')
-        
+
         # テーブルの取得
         house_details_info = house_details_soup.find('table', {'class': 'pCell10'})
         time.sleep(5)
@@ -141,8 +141,8 @@ def extract_table_data(table:bs4.element.Tag) -> dict:
         各ページの物件情報を収集する関数
         各物件ページのbs4.BeautifulSoupオブジェクトから「物件情報」にアクセスして、「物件情報」のテーブルまるごと取得する。
 
-        1. tableのHTMLからthとtd内の情報を取得する　
-        
+        1. tableのHTMLからthとtd内の情報を取得する
+
         入力はtable要素
         出力はth要素がKey、td要素がValueになった辞書
 
@@ -178,7 +178,7 @@ def extract_table_data(table:bs4.element.Tag) -> dict:
                 house_details_dict[data_head_02] = data_value_02
         except IndexError:
             house_details_dict[data_head_01] = data_value_01
-            
+
     return house_details_dict
 
 def get_title_and_comment(page_soup:bs4.BeautifulSoup)->dict:
@@ -227,7 +227,7 @@ def get_house_img(page_soup:bs4.BeautifulSoup, house_id:int)->list:
     img_id = 0
     # 以下で始まるのはIMGタグだがアクセスできないため排除する
     un_img_signal = 'gvavadfbasdfbarvbaebabaertbertbaebfbadbavafdvkavnakfvbaklvbaiklvuhiaerbnvnvkajbvkajbfgkjasbvkabvabfoak;dnvlasndvkahgvklashdvb'
-    
+
     # 5の倍数のときに多めに休むようにしてみる
     sleep_count = 0
     for img in imgs:
@@ -244,7 +244,7 @@ def get_house_img(page_soup:bs4.BeautifulSoup, house_id:int)->list:
             img_url = img_url.replace('&amp;', '&') # 文字化け対策
             # 以下は画像の保存に関する記述
             if not re.compile("resizeImage").search(img_url): #無条件で持ってくるとリサイズされた画像まで持ってきてしまうためそれを防ぐ
-                print("success", img_name, img_url) # どこで停止しているかを確認するため
+                print("success", img_name, img_url) # 停止した場合どこで停止しているかを確認するため
                 # 画像がリサイズされていないときは保存する
                 img = Image.open(io.BytesIO(requests.get(img_url).content))
                 img.save(f'imgs/{img_name}.jpg')
@@ -256,7 +256,7 @@ def get_house_img(page_soup:bs4.BeautifulSoup, house_id:int)->list:
                 sleep_count += 1
             else:
                 print("false")
-        
+
     return img_list
 
 def get_index_info(urls:list, house_info:list, house_id:int) -> Union[list, int]:
@@ -280,8 +280,8 @@ def get_index_info(urls:list, house_info:list, house_id:int) -> Union[list, int]
     for url in urls:
         print("property's page URL : ", url)
         page_soup = get_page_soup(url)# requestをget_page_soupは送って個々の物件の情報を取得している
-        table = get_house_details(page_soup) # request送って物件詳細のテーブル情報を取得している 
-        try:    
+        table = get_house_details(page_soup) # request送って物件詳細のテーブル情報を取得している
+        try:
             house_info_dict = extract_table_data(table)
         except:
             print("get_index_info Error")
@@ -314,11 +314,11 @@ def get_index_info(urls:list, house_info:list, house_id:int) -> Union[list, int]
 
         house_dict = {'House_ID': house_id, 'text':house_text_dict, 'info':house_info_dict, 'imgs':house_img_list}
         house_info.append(house_dict)
-        
+
         house_id += 1
-        
+
         time.sleep(20)
-        
+
     return house_info, house_id
 
 def edit_house_data(house:dict) -> Union[int, dict]:
@@ -367,5 +367,5 @@ def edit_house_data(house:dict) -> Union[int, dict]:
         'その他制限事項' : house['info']['その他制限事項'],
         'その他概要・特記事項' : house['info']['その他概要・特記事項'],
     }
-    
+
     return house_id, house_dict

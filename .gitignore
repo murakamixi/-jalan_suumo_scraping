@@ -1,3 +1,10 @@
 /imgs/*
 /csv/*
 /trash/*
+/.ipynb_checkpoints/*
+/chromedriver_linux64/*
+/csv/*
+/imgs/*
+.DS_Store
+*.pyc
+memo.txt
