@@ -123,7 +123,7 @@ def jalan():
 
             try:
                 res = requests.get(url)
-                soup = BeautifulSoup(res.content, 'html.parser')
+                soup = BeautifulSoup(res.content, 'html.parser', from_encoding='utf-8')
                 urls = F.get_urls(soup, target='jalan') #⓪任意の件に含まれる1ページの全観光地のリンク
 
                 for url in urls:
@@ -139,7 +139,6 @@ def jalan():
                         page_res = requests.get(page_url)
 
                         page_current_url = browser_page.current_url
-
                         page_soup = BeautifulSoup(page_res.content, 'html.parser')
 
                         # ①観光地のレビュー、一覧ページ
@@ -152,7 +151,7 @@ def jalan():
                                 # ②
                                 review_page_soup = F.get_review_page_soup(content)
                                 review_property_dict = F.get_jalan_review(review_count, content, review_page_soup)
-                                print('existing content url', review_property_dict['review_page_url'])
+                                print('img existing content url', review_property_dict['review_page_url'])
                                 img_name_list = F.get_review_img(landmark_count, review_count, review_page_soup)
 
                                 review_count += 1
@@ -166,7 +165,7 @@ def jalan():
                             browser.quit()
                             break
 
-                    reviews_dict[review_id] = {
+                    reviews_dict[review_count] = {
                                             "レビューID" : review_property_dict['review_id'],
                                             "レビューURL" : review_property_dict['review_page_url'],
                                             "タイトル" : review_property_dict['title'],
@@ -176,7 +175,7 @@ def jalan():
                                             "滞在時間" : review_property_dict['滞在時間'],
                                             "投稿日" : review_property_dict['投稿日'],
                                             }
-                    reviews_img_dict[review_id] = {"imgs" : img_name_list}
+                    reviews_img_dict[review_count] = {"imgs" : img_name_list}
 
                     attribute_df = pd.DataFrame(reviews_dict).transpose()
                     attribute_df.to_csv('csv/jalan/attribute_{filename}_{landmark_count}.csv'.format(filename = prefecture_name, landmark_count=landmark_count))
