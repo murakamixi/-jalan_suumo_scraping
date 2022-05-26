@@ -25,71 +25,71 @@ flags.DEFINE_string('pref_name', 'Yamagata', 'pref name')
 flags.DEFINE_string('target', 'suumo', 'suumo or jalan')
 
 def suumo():
-  logging.info('Starting suumo scraping')
-  house_id = 0
-  pref_sum_count = 0
+    logging.info('Starting suumo scraping')
+    house_id = 0
+    pref_sum_count = 0
 
-  for url in [data.urls[FLAGS.pref_name]]:
-      prefecture_name = FLAGS.pref_name
-      pref_sum_count += 1
-      url = url
-      data_list = []
-      page_count = 0
+    for url in [data.urls[FLAGS.pref_name]]:
+        prefecture_name = FLAGS.pref_name
+        pref_sum_count += 1
+        url = url
+        data_list = []
+        page_count = 0
 
-      logging.info(pref_sum_count, prefecture_name)
+        logging.info(pref_sum_count, prefecture_name)
 
-      options = Options()
-      options.add_argument('--headless')
-      browser = webdriver.Chrome(ChromeDriverManager().install(), options=options)
-      browser.get(url)
+        options = Options()
+        options.add_argument('--headless')
+        browser = webdriver.Chrome(ChromeDriverManager().install(), options=options)
+        browser.get(url)
 
 	# 次へをクリックして、ページがなくなるまで繰り返しページを探索する
-      while True:
-          url = browser.current_url
-          logging.info(url)
-          #ブラウザの起動
-          options = Options()
-          options.add_argument('--headless')
-          browser = webdriver.Chrome(ChromeDriverManager().install(), options=options)
+        while True:
+            url = browser.current_url
+            logging.info(url)
+            #ブラウザの起動
+            options = Options()
+            options.add_argument('--headless')
+            browser = webdriver.Chrome(ChromeDriverManager().install(), options=options)
 
-          browser.get(url)
+            browser.get(url)
 
-          try:
-              res = requests.get(url)
-              soup = BeautifulSoup(res.content, 'html.parser')
-              urls = F.get_urls(soup) #個別ページのURLを取得
-              house_info, house_id = F.get_index_info(urls, data_list, house_id)
+            try:
+                res = requests.get(url)
+                soup = BeautifulSoup(res.content, 'html.parser')
+                urls = F.get_urls(soup) #個別ページのURLを取得
+                house_info, house_id = F.get_index_info(urls, data_list, house_id)
 
-              browser.find_element_by_link_text('次へ').click()
-              if page_count % 10 == 0:
-                  logging.info("pages:{0}".format(page_count))
-                  logging.info('==============================================')
-                  time.sleep(60)
-              time.sleep(60)
+                browser.find_element_by_link_text('次へ').click()
+                if page_count % 10 == 0:
+                    logging.info("pages:{0}".format(page_count))
+                    logging.info('==============================================')
+                    time.sleep(60)
+                time.sleep(60)
 
-              houses_dict = {}
-              img_list = []
+                houses_dict = {}
+                img_list = []
 
-              for house in house_info:
-                  # Pandasで加工しやすいようにKeyが一つの辞書に家の情報を変更する
-                  house_id, house_dict = F.edit_house_data(house)
-                  houses_dict[house_id] = house_dict
-                  # Houseの画像は変更が必要ないので、そのままリストに追加する
-                  # ただ、一つづつ取り出して追加する必要があるので、要注意
-                  img_list += house['imgs']
+                for house in house_info:
+                    # Pandasで加工しやすいようにKeyが一つの辞書に家の情報を変更する
+                    house_id, house_dict = F.edit_house_data(house)
+                    houses_dict[house_id] = house_dict
+                    # Houseの画像は変更が必要ないので、そのままリストに追加する
+                    # ただ、一つづつ取り出して追加する必要があるので、要注意
+                    img_list += house['imgs']
 
-              attribute_df = pd.DataFrame(houses_dict).transpose()
-              attribute_df.to_csv('csv/suumo/attribute_{filename}_{page_num}.csv'.format(filename = prefecture_name, page_num=page_count))
-              imgs_df = pd.DataFrame(img_list)
-              imgs_df.to_csv('csv/suumo/imgs_{filename}_{page_num}.csv'.format(filename = prefecture_name, page_num=page_count))
+                attribute_df = pd.DataFrame(houses_dict).transpose()
+                attribute_df.to_csv('csv/suumo/attribute_{filename}_{page_num}.csv'.format(filename = prefecture_name, page_num=page_count))
+                imgs_df = pd.DataFrame(img_list)
+                imgs_df.to_csv('csv/suumo/imgs_{filename}_{page_num}.csv'.format(filename = prefecture_name, page_num=page_count))
 
-              page_count += 1
+                page_count += 1
 
-          except NoSuchElementException:
-              browser.quit()
-              break
+            except NoSuchElementException:
+                browser.quit()
+                break
 
-      logging.info('browser quit')
+        logging.info('browser quit')
 
 def jalan():
     logging.info('Starting jalan scraping')
@@ -197,4 +197,4 @@ def main(argv):
 	    jalan()
 
 if __name__ == '__main__':
-  app.run(main)
+    app.run(main)
