@@ -410,7 +410,10 @@ def get_jalan_review(review_id:int, content_soup:bs4.BeautifulSoup, review_page_
     review_soup = review_page_soup.find('p', attrs={'class' : 'reviewText'})
 
     title = review_page_soup.find('h1', attrs={'class' : 'basicTitle'})
-    review = review_soup.text.replace('\n', '')
+    try:
+        review = review_soup.text.replace('\n', '')
+    except:
+        review = ''
 
     review_property_dict['title'] = title
     review_property_dict['review'] = review
