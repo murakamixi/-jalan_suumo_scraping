@@ -16,6 +16,8 @@ import io
 
 import time
 
+from absl import logging
+
 def get_urls(soup:bs4.BeautifulSoup) -> list:
     """
         get_urls
@@ -128,9 +130,9 @@ def get_house_details(page_soup:bs4.BeautifulSoup) -> bs4.element.Tag:
         time.sleep(5)
 
     except Exception as e:
-        print(e)
-        print("house_details_a_elem", house_details_a_elem)
-        print("page_soup", page_soup)
+        logging.error(e)
+        logging.error("house_details_a_elem", house_details_a_elem)
+        logging.error("page_soup", page_soup)
         house_details_info = {}
 
     return house_details_info
@@ -244,7 +246,7 @@ def get_house_img(page_soup:bs4.BeautifulSoup, house_id:int)->list:
             img_url = img_url.replace('&amp;', '&') # 文字化け対策
             # 以下は画像の保存に関する記述
             if not re.compile("resizeImage").search(img_url): #無条件で持ってくるとリサイズされた画像まで持ってきてしまうためそれを防ぐ
-                print("success", img_name, img_url) # 停止した場合どこで停止しているかを確認するため
+                logging.info("success", img_name, img_url) # 停止した場合どこで停止しているかを確認するため
                 # 画像がリサイズされていないときは保存する
                 img = Image.open(io.BytesIO(requests.get(img_url).content))
                 img.save(f'imgs/{img_name}.jpg')
@@ -255,7 +257,7 @@ def get_house_img(page_soup:bs4.BeautifulSoup, house_id:int)->list:
                     time.sleep(50)
                 sleep_count += 1
             else:
-                print("false")
+                logging.error("false")
 
     return img_list
 
@@ -278,13 +280,13 @@ def get_index_info(urls:list, house_info:list, house_id:int) -> Union[list, int]
                 [{'House_ID': house_id, 'text':house_text_dict, 'info':house_info_dict, 'imgs':house_img_list}...]
     """
     for url in urls:
-        print("property's page URL : ", url)
+        logging.info("property's page URL : ", url)
         page_soup = get_page_soup(url)# requestをget_page_soupは送って個々の物件の情報を取得している
         table = get_house_details(page_soup) # request送って物件詳細のテーブル情報を取得している
         try:
             house_info_dict = extract_table_data(table)
         except:
-            print("get_index_info Error")
+            logging.warning("get_index_info Error")
             house_info_dict = {'販売スケジュール': "",
         'イベント情報': "",
         '所在地' : "",
