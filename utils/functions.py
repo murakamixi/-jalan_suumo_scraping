@@ -16,7 +16,9 @@ import io
 
 import time
 
-def get_urls(soup:bs4.BeautifulSoup) -> list:
+from absl import logging
+
+def get_urls(soup:bs4.BeautifulSoup, target:str='suumo') -> list:
     """
         get_urls
 
@@ -51,7 +53,10 @@ def get_urls(soup:bs4.BeautifulSoup) -> list:
                 ]
         """
 
-    h2_elems = soup.find_all('h2', attrs={'class' : 'property_unit-title'})
+    if target == 'suumo':
+        h2_elems = soup.find_all('h2', attrs={'class' : 'property_unit-title'})
+    elif target == 'jalan':
+        h2_elems = soup.find_all('p', attrs={'class' : 'item-name'})
 
     urls = []
 
@@ -63,7 +68,7 @@ def get_urls(soup:bs4.BeautifulSoup) -> list:
 
     return urls
 
-def get_page_soup(internal_url:str) -> bs4.BeautifulSoup:
+def get_page_soup(internal_url:str, page_interval:int, target:str='suumo') -> bs4.BeautifulSoup:
     """get_page_soup
 
         各物件へのリンクを作成して、アクセスして、各ページのsoupを出力する
@@ -82,11 +87,15 @@ def get_page_soup(internal_url:str) -> bs4.BeautifulSoup:
                 bs4.BeautifulSoup
     """
     # ページ内リンクをドメインと結びつけて直にアクセスできるリンクに変換している
-    page_url = 'https://suumo.jp' + internal_url
+    if target == 'suumo':
+        page_url = 'https://suumo.jp' + internal_url
+    elif target == 'jalan':
+        page_url = "https:" + internal_url + 'kuchikomi'
+
     page_res = requests.get(page_url)
     page_soup = BeautifulSoup(page_res.content, 'html.parser')
 
-    time.sleep(15)
+    time.sleep(page_interval)
 
     return page_soup
 
@@ -125,12 +134,11 @@ def get_house_details(page_soup:bs4.BeautifulSoup) -> bs4.element.Tag:
 
         # テーブルの取得
         house_details_info = house_details_soup.find('table', {'class': 'pCell10'})
-        time.sleep(5)
 
     except Exception as e:
-        print(e)
-        print("house_details_a_elem", house_details_a_elem)
-        print("page_soup", page_soup)
+        logging.error(e)
+        logging.error("house_details_a_elem", house_details_a_elem)
+        logging.error("page_soup", page_soup)
         house_details_info = {}
 
     return house_details_info
@@ -204,7 +212,7 @@ def get_title_and_comment(page_soup:bs4.BeautifulSoup)->dict:
         house_dict = {'title':'', 'comment':''}
     return house_dict
 
-def get_house_img(page_soup:bs4.BeautifulSoup, house_id:int)->list:
+def get_house_img(page_soup:bs4.BeautifulSoup, house_id:int, img_interval:int, img10_interval:int)->list:
     """get_house_img
         各ページの写真を取得して、写真をHouseId_IMGIDの形式で保存する。
         家の画像の取得
@@ -244,22 +252,22 @@ def get_house_img(page_soup:bs4.BeautifulSoup, house_id:int)->list:
             img_url = img_url.replace('&amp;', '&') # 文字化け対策
             # 以下は画像の保存に関する記述
             if not re.compile("resizeImage").search(img_url): #無条件で持ってくるとリサイズされた画像まで持ってきてしまうためそれを防ぐ
-                print("success", img_name, img_url) # 停止した場合どこで停止しているかを確認するため
+                logging.info("success", img_name, img_url) # 停止した場合どこで停止しているかを確認するため
                 # 画像がリサイズされていないときは保存する
                 img = Image.open(io.BytesIO(requests.get(img_url).content))
-                img.save(f'imgs/{img_name}.jpg')
+                img.save(f'imgs/suumo/{img_name}.jpg')
                 img_list.append({'house_id':house_id, 'img_id':img_id, 'img_tag':img_tag, 'img_name':img_name})
-                time.sleep(10)
+                time.sleep(img_interval)
                 # 10枚画像取るごとにちょっとながめに休憩
                 if sleep_count % 10 == 0:
-                    time.sleep(50)
+                    time.sleep(img10_interval)
                 sleep_count += 1
             else:
-                print("false")
+                logging.error("false")
 
     return img_list
 
-def get_index_info(urls:list, house_info:list, house_id:int) -> Union[list, int]:
+def get_index_info(urls:list, house_info:list, house_id:int, page_interval:int, img_interval:int, img10_interval:int) -> Union[list, int]:
     """get_index_info
         Index1ページ分のURL
         ここのループでは、Index1ページ分のURLをすべて取ってきている
@@ -278,13 +286,13 @@ def get_index_info(urls:list, house_info:list, house_id:int) -> Union[list, int]
                 [{'House_ID': house_id, 'text':house_text_dict, 'info':house_info_dict, 'imgs':house_img_list}...]
     """
     for url in urls:
-        print("property's page URL : ", url)
-        page_soup = get_page_soup(url)# requestをget_page_soupは送って個々の物件の情報を取得している
+        logging.info("property's page URL : ", url)
+        page_soup = get_page_soup(url, page_interval)# requestをget_page_soupは送って個々の物件の情報を取得している
         table = get_house_details(page_soup) # request送って物件詳細のテーブル情報を取得している
         try:
             house_info_dict = extract_table_data(table)
         except:
-            print("get_index_info Error")
+            logging.error("get_index_info Error")
             house_info_dict = {'販売スケジュール': "",
         'イベント情報': "",
         '所在地' : "",
@@ -310,14 +318,12 @@ def get_index_info(urls:list, house_info:list, house_id:int) -> Union[list, int]
         'その他制限事項' : "",
         'その他概要・特記事項' : ""}
         house_text_dict = get_title_and_comment(page_soup)
-        house_img_list = get_house_img(page_soup, house_id) # request送って写真を取得している
+        house_img_list = get_house_img(page_soup, house_id, img_interval, img10_interval) # request送って写真を取得している
 
         house_dict = {'House_ID': house_id, 'text':house_text_dict, 'info':house_info_dict, 'imgs':house_img_list}
         house_info.append(house_dict)
 
         house_id += 1
-
-        time.sleep(20)
 
     return house_info, house_id
 
@@ -369,3 +375,90 @@ def edit_house_data(house:dict) -> Union[int, dict]:
     }
 
     return house_id, house_dict
+
+
+
+# jalan only function
+def is_existing_img(content_soup:bs4.BeautifulSoup) -> Union[None, bs4.element.Tag]:
+    img_existing = content_soup.find('picture', attrs={'class' : 'item-mainImg'})
+    return img_existing
+
+def get_review_page_soup(content_soup:bs4.BeautifulSoup):
+    div_elem = content_soup.find('p', attrs={'class' : 'item-title'})
+    # details page url
+    a_elem = div_elem.find('a')
+    review_page_url = 'https:' + a_elem.attrs['href']
+    # ここはクラスにしてselfに入れる
+    # review_property_dict['review_page_url'] = review_page_url
+    review_page_res = requests.get(review_page_url) #details page soup
+    review_page_soup = BeautifulSoup(review_page_res.content, 'html.parser')
+
+    return review_page_soup
+
+def get_jalan_review(review_id:int, content_soup:bs4.BeautifulSoup, review_page_soup:bs4.BeautifulSoup) -> dict:
+    review_property_dict = {}
+    review_property_dict['review_id'] = review_id
+
+    div_elem = content_soup.find('p', attrs={'class' : 'item-title'})
+    a_elem = div_elem.find('a')
+    review_page_url = 'https:' + a_elem.attrs['href']
+    review_property_dict['review_page_url'] = review_page_url
+
+    review_soup = review_page_soup.find('p', attrs={'class' : 'reviewText'})
+
+    title = review_page_soup.find('h1', attrs={'class' : 'basicTitle'})
+    review_property_dict['title'] = title
+
+    # reviewの文字化けで止まってしまうことがあるのでその対策
+    try:
+        review = review_soup.text.replace('\n', '')
+        review_property_dict['review'] = review
+    except Exception as e:
+        review = ''
+        review_property_dict['review'] = review
+        review_property_dict['Error'] = e
+        # 止まったら確認用に使う
+        # print('review: review Error', review)
+        return review_property_dict
+
+    review_properties = review_page_soup.find('ul', attrs={'class' : 'reviewDetail'})
+    review_properties = review_properties.find_all('li')
+    review_properties=[review_property.text.strip() for review_property in review_properties]
+
+    # 文字化けで止まってしまうのでその対策
+    try:
+        for review_property in review_properties:
+            # 止まったら確認用に使う
+            # print('review_property', review_property)
+            column_name = review_property.split('：')[0]
+            column_data = review_property.split('：')[1]
+
+        review_property_dict[column_name] = column_data
+
+    except IndexError as e:
+        review_property_dict['Error'] = e
+
+    return review_property_dict
+
+def get_review_img(landmark_id:int, review_id:int, review_page_soup:bs4.BeautifulSoup, img_interval:int)->list:
+    img_id = 0
+    img_name_list = list()
+
+    img_contents_block = review_page_soup.find('ul', attrs={'class' : 'cassetteList-photo'})
+    img_contents = img_contents_block.find_all('li', attrs={'class' : 'lightbox'})
+
+    for img_content in img_contents:
+        img_elem = img_content.find('source')
+        img_url = img_elem.attrs['srcset']
+        img_url = 'https:' + img_url
+
+        img = Image.open(io.BytesIO(requests.get(img_url).content))
+        img_name=str(landmark_id) + '_' + str(review_id) + '_' + str(img_id)
+        img.save(f'imgs/jalan/{img_name}.jpg')
+
+        img_name_list.append(img_name)
+
+        img_id += 1
+        time.sleep(img_interval)
+
+    return img_name_list

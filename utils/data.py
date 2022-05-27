@@ -47,3 +47,7 @@ urls = {
     'Kagosima':'https://suumo.jp/jj/bukken/ichiran/JJ010FJ001/?ar=040&bs=021&ta=46&jspIdFlg=patternShikugun&kb=1&kt=9999999&tb=0&tt=9999999&hb=0&ht=9999999&ekTjCd=&ekTjNm=&tj=0&cnb=0&cn=9999999',
     'Okinawa':'https://suumo.jp/jj/bukken/ichiran/JJ010FJ001/?ar=040&bs=021&ta=47&jspIdFlg=patternShikugun&kb=1&kt=9999999&tb=0&tt=9999999&hb=0&ht=9999999&ekTjCd=&ekTjNm=&tj=0&cnb=0&cn=9999999',
 }
+
+jalan_urls = {
+    'Yamagata':'https://www.jalan.net/kankou/060000/?screenId=OUW2202&influxKbn=0',
+}

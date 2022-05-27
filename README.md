@@ -1,5 +1,3 @@
-# -jalan_suumo_scraping
-
 #  Quick Start
 
 ## 環境構築
