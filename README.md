@@ -21,7 +21,7 @@ pip install -r requirements.txt
 ### SUUMOをスクレイピングする
 
 ```python
-python main.py --target-suumo
+python main.py --target=suumo
 ```
 
 ### じゃらんをスクレイピングする
