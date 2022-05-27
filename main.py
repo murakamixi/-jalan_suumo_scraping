@@ -26,6 +26,7 @@ flags.DEFINE_string('target', 'suumo', 'suumo or jalan')
 
 flags.DEFINE_integer('page_interval', 60, 'page sleep interval time')
 flags.DEFINE_integer('img_interval', 30, 'img sleep interval time')
+flags.DEFINE_integer('img10_interval', 30, '10 imgs sleep interval time')
 
 def suumo():
     house_id = 0
@@ -60,7 +61,7 @@ def suumo():
                 res = requests.get(url)
                 soup = BeautifulSoup(res.content, 'html.parser')
                 urls = F.get_urls(soup) #個別ページのURLを取得
-                house_info, house_id = F.get_index_info(urls, data_list, house_id)
+                house_info, house_id = F.get_index_info(urls, data_list, house_id, FLAGS.page_interval, FLAGS.img_interval, FLAGS.img10_interval)
 
                 browser.find_element_by_link_text('次へ').click()
                 if page_count % 10 == 0:
@@ -158,13 +159,14 @@ def jalan():
                                     logging.error('review encoding error:', review_property_dict['Error'])
                                     break
 
-                                img_name_list = F.get_review_img(landmark_count, review_count, review_page_soup)
+                                img_name_list = F.get_review_img(landmark_count, review_count, review_page_soup, FLAGS.img_interval)
 
                                 review_count += 1
                             page_count += 1
 
                         try:
                             browser_page.find_element_by_link_text('次へ').click()
+                            time.sleep(FLAGS.page_interval)
                             page_url = browser_page.current_url
                         except NoSuchElementException:
                             browser.quit()
@@ -202,18 +204,5 @@ def main(argv):
     elif FLAGS.target == 'jalan':
         logging.info('Starting jalan scraping')
         jalan()
-    elif FLAGS.target == 'log':
-        # logging.info('Interesting Stuff')
-        # logging.info('Interesting Stuff with Arguments: %d', 42)
-
-        logging.set_verbosity(logging.INFO)
-        logging.log(logging.DEBUG, 'This will *not* be printed')
-        logging.set_verbosity(logging.DEBUG)
-        logging.log(logging.DEBUG, 'This will be printed')
-
-        # logging.warning('Worrying Stuff')
-        # logging.error('Alarming Stuff')
-        # logging.fatal('AAAAHHHHH!!!!')  # Process exits
-
 if __name__ == '__main__':
     app.run(main)

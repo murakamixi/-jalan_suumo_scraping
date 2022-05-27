@@ -68,7 +68,7 @@ def get_urls(soup:bs4.BeautifulSoup, target:str='suumo') -> list:
 
     return urls
 
-def get_page_soup(internal_url:str, target:str='suumo') -> bs4.BeautifulSoup:
+def get_page_soup(internal_url:str, page_interval:int, target:str='suumo') -> bs4.BeautifulSoup:
     """get_page_soup
 
         各物件へのリンクを作成して、アクセスして、各ページのsoupを出力する
@@ -95,7 +95,7 @@ def get_page_soup(internal_url:str, target:str='suumo') -> bs4.BeautifulSoup:
     page_res = requests.get(page_url)
     page_soup = BeautifulSoup(page_res.content, 'html.parser')
 
-    time.sleep(15)
+    time.sleep(page_interval)
 
     return page_soup
 
@@ -134,7 +134,6 @@ def get_house_details(page_soup:bs4.BeautifulSoup) -> bs4.element.Tag:
 
         # テーブルの取得
         house_details_info = house_details_soup.find('table', {'class': 'pCell10'})
-        time.sleep(5)
 
     except Exception as e:
         logging.error(e)
@@ -213,7 +212,7 @@ def get_title_and_comment(page_soup:bs4.BeautifulSoup)->dict:
         house_dict = {'title':'', 'comment':''}
     return house_dict
 
-def get_house_img(page_soup:bs4.BeautifulSoup, house_id:int)->list:
+def get_house_img(page_soup:bs4.BeautifulSoup, house_id:int, img_interval:int, img10_interval:int)->list:
     """get_house_img
         各ページの写真を取得して、写真をHouseId_IMGIDの形式で保存する。
         家の画像の取得
@@ -258,17 +257,17 @@ def get_house_img(page_soup:bs4.BeautifulSoup, house_id:int)->list:
                 img = Image.open(io.BytesIO(requests.get(img_url).content))
                 img.save(f'imgs/suumo/{img_name}.jpg')
                 img_list.append({'house_id':house_id, 'img_id':img_id, 'img_tag':img_tag, 'img_name':img_name})
-                time.sleep(10)
+                time.sleep(img_interval)
                 # 10枚画像取るごとにちょっとながめに休憩
                 if sleep_count % 10 == 0:
-                    time.sleep(50)
+                    time.sleep(img10_interval)
                 sleep_count += 1
             else:
                 logging.error("false")
 
     return img_list
 
-def get_index_info(urls:list, house_info:list, house_id:int) -> Union[list, int]:
+def get_index_info(urls:list, house_info:list, house_id:int, page_interval:int, img_interval:int, img10_interval:int) -> Union[list, int]:
     """get_index_info
         Index1ページ分のURL
         ここのループでは、Index1ページ分のURLをすべて取ってきている
@@ -288,7 +287,7 @@ def get_index_info(urls:list, house_info:list, house_id:int) -> Union[list, int]
     """
     for url in urls:
         logging.info("property's page URL : ", url)
-        page_soup = get_page_soup(url)# requestをget_page_soupは送って個々の物件の情報を取得している
+        page_soup = get_page_soup(url, page_interval)# requestをget_page_soupは送って個々の物件の情報を取得している
         table = get_house_details(page_soup) # request送って物件詳細のテーブル情報を取得している
         try:
             house_info_dict = extract_table_data(table)
@@ -319,14 +318,12 @@ def get_index_info(urls:list, house_info:list, house_id:int) -> Union[list, int]
         'その他制限事項' : "",
         'その他概要・特記事項' : ""}
         house_text_dict = get_title_and_comment(page_soup)
-        house_img_list = get_house_img(page_soup, house_id) # request送って写真を取得している
+        house_img_list = get_house_img(page_soup, house_id, img_interval, img10_interval) # request送って写真を取得している
 
         house_dict = {'House_ID': house_id, 'text':house_text_dict, 'info':house_info_dict, 'imgs':house_img_list}
         house_info.append(house_dict)
 
         house_id += 1
-
-        time.sleep(20)
 
     return house_info, house_id
 
@@ -443,7 +440,7 @@ def get_jalan_review(review_id:int, content_soup:bs4.BeautifulSoup, review_page_
 
     return review_property_dict
 
-def get_review_img(landmark_id:int, review_id:int, review_page_soup:bs4.BeautifulSoup)->list:
+def get_review_img(landmark_id:int, review_id:int, review_page_soup:bs4.BeautifulSoup, img_interval:int)->list:
     img_id = 0
     img_name_list = list()
 
@@ -462,5 +459,6 @@ def get_review_img(landmark_id:int, review_id:int, review_page_soup:bs4.Beautifu
         img_name_list.append(img_name)
 
         img_id += 1
+        time.sleep(img_interval)
 
     return img_name_list
