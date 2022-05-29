@@ -155,8 +155,11 @@ def jalan():
                                 review_page_soup = F.get_review_page_soup(content)
                                 review_property_dict = F.get_jalan_review(review_count, content, review_page_soup)
 
-                                if review_property_dict['review'] == '' or 'Error' in review_property_dict:
-                                    logging.error('review encoding error:', review_property_dict['Error'])
+                                if review_property_dict['review'] == '' and 'Error' in review_property_dict:
+                                    logging.warning('review encoding error:', review_property_dict['Error']) 
+                                    break
+                                elif review_property_dict['review'] == '':
+                                    logging.warning('review encoding error:', review_property_dict['Error']) 
                                     break
 
                                 img_name_list = F.get_review_img(landmark_count, review_count, review_page_soup, FLAGS.img_interval)
@@ -172,7 +175,8 @@ def jalan():
                             browser.quit()
                             break
 
-                    reviews_dict[review_count] = {
+                   try:
+                       reviews_dict[review_count] = {
                                             "レビューID" : review_property_dict['review_id'],
                                             "レビューURL" : review_property_dict['review_page_url'],
                                             "タイトル" : review_property_dict['title'],
@@ -182,6 +186,17 @@ def jalan():
                                             "滞在時間" : review_property_dict['滞在時間'],
                                             "投稿日" : review_property_dict['投稿日'],
                                             }
+                    except:
+                        reviews_dict[review_count] = {
+                                            "レビューID" : review_property_dict['review_id'],
+                                            "レビューURL" : review_property_dict['review_page_url'],
+                                            "タイトル" : review_property_dict['title'],
+                                            "レビュー" : review_property_dict['review'],
+                                            "混雑具合" : review_property_dict['混雑具合'],
+                                            "滞在時間" : review_property_dict['滞在時間'],
+                                            "投稿日" : review_property_dict['投稿日'],
+                                            }
+
                     reviews_img_dict[review_count] = {"imgs" : img_name_list}
 
                     attribute_df = pd.DataFrame(reviews_dict).transpose()
